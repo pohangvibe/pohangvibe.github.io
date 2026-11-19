@@ -260,6 +260,11 @@ details.basics ul{margin:8px 0 2px;padding-left:18px}
 .cardm .acts .big{flex:0 0 auto;justify-content:center;min-width:110px;font-size:13px;letter-spacing:.02em;padding:9px 12px;white-space:nowrap;box-shadow:3px 3px 0 var(--ink),inset 0 0 0 2px #3a4a80}
 .cardm .acts .big.alt{background:#fbe9c6;color:var(--ink);box-shadow:3px 3px 0 var(--ink)}
 .cardm .acts button:disabled{opacity:.45}
+.saver{position:fixed;inset:0;z-index:40;background:rgba(14,19,40,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  padding:max(16px,env(safe-area-inset-top,0px)) 16px max(16px,env(safe-area-inset-bottom,0px))}
+.saver img{max-width:min(92vw,420px);max-height:72svh;object-fit:contain;border:3px solid #fbf5e6;-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto}
+.saver-h{margin:0;color:#fbf5e6;text-align:center;font-size:16px;line-height:1.45}
+.saver .big{font-size:13px;padding:9px 18px}
 /* phone layout fix (2026-11-19) */
 @media (max-width:520px){
   body{padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
@@ -614,19 +619,22 @@ async function openCard(info){
     if(navigator.share){ try{ await navigator.share({title:TITLE,text:info.text,url:info.link}); return; }catch(e){ if(isAbort(e)) return; } }
     copyLink(); };
   const sv=btn(acts,'SAVE IMAGE','big alt'); sv.disabled=true;
-  try{ const cv=await makeCard(info); blob=await new Promise(r=>cv.toBlob(r,'image/png')); }catch(e){ blob=null; }
+  let dataUrl=null;
+  try{ const cv=await makeCard(info); blob=await new Promise(r=>cv.toBlob(r,'image/png')); try{ dataUrl=cv.toDataURL('image/png'); }catch(e){} }catch(e){ blob=null; }
   if(!blob){ ov.querySelector('.cardwrap').innerHTML='<p class="fine">The image card could not be made in this browser, but you can still share the link.</p>'; sv.remove(); return; }
   src=URL.createObjectURL(blob); file=new File([blob],fname,{type:'image/png'});
-  ov.querySelector('.cardwrap').innerHTML=`<img src="${src}" alt="Share card: ${esc(info.t.name)}, ${esc(info.style)}">`;
+  ov.querySelector('.cardwrap').innerHTML=`<img src="${dataUrl||src}" alt="Share card: ${esc(info.t.name)}, ${esc(info.style)}">`;
   sv.disabled=false;
+  // 아이폰·앱 안 브라우저: 웹에서 사진 앱에 바로 저장할 수 없어서, 큰 이미지를 띄워 길게 눌러 저장하게 함
+  const openSaver=()=>{ const v=document.createElement('div'); v.className='saver'; v.setAttribute('role','dialog'); v.setAttribute('aria-label','Save image');
+    v.innerHTML=`<p class="saver-h">Press and hold the image,<br>then tap <b>“Save to Photos”</b></p><img src="${dataUrl||src}" alt="Your Pohang vibe card"><button class="big alt" type="button">DONE</button>`;
+    document.body.appendChild(v); const done=()=>{SND.play('back'); v.remove();}; v.querySelector('button').onclick=done; v.onclick=e=>{if(e.target===v) done();}; };
   sv.onclick=async()=>{SND.play('click'); let dl=null; if(window.claude&&claude.use){ try{dl=await claude.use('downloads');}catch(e){} }
     if(dl){ try{await dl.save({filename:fname,data:blob}); msg('Saved!');}catch(e){ if(e&&e.code==='declined') return; msg('Could not save here. Press and hold the image to save it.'); } return; }
     const ua=navigator.userAgent;
-    if(/KAKAOTALK|Instagram|FBAN|FBAV|Line\/|NAVER|wv\)/i.test(ua)){ msg('In this app, press and hold the image above to save it.'); return; }
+    const inApp=/KAKAOTALK|Instagram|FBAN|FBAV|Line\/|NAVER|wv\)/i.test(ua);
     const isIOS=/iPhone|iPad|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-    let canFiles=false; try{ canFiles=!!(navigator.canShare&&navigator.canShare({files:[file]})); }catch(e){}
-    if(isIOS){ if(canFiles){ msg('Tap "Save Image" in the menu to save it to Photos.'); try{ await navigator.share({files:[file]}); }catch(e){ if(e&&e.name==='AbortError') return; msg('Press and hold the image above, then tap "Save to Photos".'); } }
-      else msg('Press and hold the image above, then tap "Save to Photos".'); return; }
+    if(isIOS||inApp){ openSaver(); return; }
     const a=document.createElement('a'); a.href=src; a.download=fname; document.body.appendChild(a); a.click(); a.remove();
     msg(/Android/i.test(ua)?'Saved to your Downloads. You can find it in your Gallery app.':'Saved! Check your downloads.'); };
 }
