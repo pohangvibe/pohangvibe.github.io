@@ -254,6 +254,7 @@ details.basics ul{margin:8px 0 2px;padding-left:18px}
   .screen>*:not(.about){animation:pop .25s steps(3) both}
   @keyframes pop{from{transform:translateY(6px);opacity:.4}}
 }
+.game:has(> .screen){margin-block:auto}
 /* phone layout fix (2026-11-19) */
 @media (max-width:520px){
   body{padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
