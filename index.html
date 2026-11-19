@@ -619,10 +619,16 @@ async function openCard(info){
   src=URL.createObjectURL(blob); file=new File([blob],fname,{type:'image/png'});
   ov.querySelector('.cardwrap').innerHTML=`<img src="${src}" alt="Share card: ${esc(info.t.name)}, ${esc(info.style)}">`;
   sv.disabled=false;
-  sv.onclick=async()=>{SND.play('click'); let dl=null; try{dl=await (window.claude&&claude.use?claude.use('downloads'):null);}catch(e){}
+  sv.onclick=async()=>{SND.play('click'); let dl=null; if(window.claude&&claude.use){ try{dl=await claude.use('downloads');}catch(e){} }
     if(dl){ try{await dl.save({filename:fname,data:blob}); msg('Saved!');}catch(e){ if(e&&e.code==='declined') return; msg('Could not save here. Press and hold the image to save it.'); } return; }
-    if(/KAKAOTALK|Instagram|FBAN|FBAV|Line\/|NAVER|wv\)/i.test(navigator.userAgent)){ msg('In this app, press and hold the image above to save it.'); return; }
-    const a=document.createElement('a'); a.href=src; a.download=fname; document.body.appendChild(a); a.click(); a.remove(); msg('Saved! Check your downloads. If nothing was saved, press and hold the image.'); };
+    const ua=navigator.userAgent;
+    if(/KAKAOTALK|Instagram|FBAN|FBAV|Line\/|NAVER|wv\)/i.test(ua)){ msg('In this app, press and hold the image above to save it.'); return; }
+    const isIOS=/iPhone|iPad|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+    let canFiles=false; try{ canFiles=!!(navigator.canShare&&navigator.canShare({files:[file]})); }catch(e){}
+    if(isIOS){ if(canFiles){ msg('Tap "Save Image" in the menu to save it to Photos.'); try{ await navigator.share({files:[file]}); }catch(e){ if(e&&e.name==='AbortError') return; msg('Press and hold the image above, then tap "Save to Photos".'); } }
+      else msg('Press and hold the image above, then tap "Save to Photos".'); return; }
+    const a=document.createElement('a'); a.href=src; a.download=fname; document.body.appendChild(a); a.click(); a.remove();
+    msg(/Android/i.test(ua)?'Saved to your Downloads. You can find it in your Gallery app.':'Saved! Check your downloads.'); };
 }
 
 
