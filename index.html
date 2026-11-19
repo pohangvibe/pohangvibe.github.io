@@ -256,6 +256,9 @@ details.basics ul{margin:8px 0 2px;padding-left:18px}
 }
 .game:has(> .screen){margin-block:auto}
 .cardm .linkbox{display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:8px;font:inherit;font-size:13px;border:2px solid var(--ink);background:#fff}
+.cardm .acts .big{min-width:min(320px,80%);justify-content:center}
+.cardm .acts2{display:flex;gap:18px;justify-content:center;margin-top:10px}
+.cardm .acts2 button:disabled{opacity:.4}
 /* phone layout fix (2026-11-19) */
 @media (max-width:520px){
   body{padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
@@ -354,7 +357,7 @@ function openFeedbackPopup(ctx){
 
 
 // ---------- sound: original chiptune made in the browser (Web Audio), no audio files ----------
-const SND=(()=>{let ctx=null,master=null,musicBus=null,on=true,timer=null,step=0,next=0;
+const SND=(()=>{let ctx=null,master=null,musicBus=null,on=true,timer=null,step=0,next=0,unlocked=false;
   try{on=localStorage.getItem('pv-sound')!=='off'}catch(e){}
   const init=()=>{if(ctx) return; const C=window.AudioContext||window.webkitAudioContext; if(!C) return;
     ctx=new C(); master=ctx.createGain(); master.gain.value=on?1:0; master.connect(ctx.destination);
@@ -396,19 +399,27 @@ const SND=(()=>{let ctx=null,master=null,musicBus=null,on=true,timer=null,step=0
       if(pos===0) hit(next,'kick'); if(pos===4) hit(next,'snare'); if(pos===2||pos===6) hit(next,'hat');
       if(bar===15&&pos===7) hit(next,'snare');
       next+=E; step++;}};
-  const startMusic=()=>{init(); if(!ctx||timer) return; ctx.resume&&ctx.resume(); step=0; next=ctx.currentTime+.08; timer=setInterval(tick,60); tick();};
+  const startMusic=()=>{init(); if(!ctx) return; if(ctx.state!=='running'&&ctx.resume) ctx.resume(); if(timer) return; step=0; next=ctx.currentTime+.08; timer=setInterval(tick,60); tick();};
+  // 휴대폰: 첫 터치에서 오디오를 켜고, 아이폰 무음 스위치에서도 소리가 나도록 재생용 오디오 세션으로 바꿈
+  const unlock=()=>{ try{ if(navigator.audioSession) navigator.audioSession.type='playback'; }catch(e){}
+    init(); if(!ctx) return; if(ctx.state!=='running'&&ctx.resume) ctx.resume();
+    if(!unlocked){ unlocked=true; try{ const b=ctx.createBuffer(1,1,22050), s=ctx.createBufferSource(); s.buffer=b; s.connect(ctx.destination); s.start(0); }catch(e){}
+      try{ const a=new Audio('data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA'); a.setAttribute('playsinline',''); const p=a.play(); p&&p.catch(()=>{}); }catch(e){} }
+    if(on) startMusic();
+    if(ctx.state==='running') ['touchend','click','keydown'].forEach(ev=>document.removeEventListener(ev,unlock,true)); };
+  ['touchend','click','keydown'].forEach(ev=>document.addEventListener(ev,unlock,true));
   const fx={
     click:()=>{const t=ctx.currentTime; tone(N(84),t,.06,'square',.05);},
     pick:()=>{const t=ctx.currentTime; tone(N(76),t,.07); tone(N(83),t+.06,.1);},
     back:()=>{const t=ctx.currentTime; tone(N(79),t,.06); tone(N(72),t+.05,.09);},
     open:()=>{const t=ctx.currentTime; tone(N(88),t,.05,'triangle',.08); tone(N(91),t+.04,.08,'triangle',.08);},
     result:()=>{const t=ctx.currentTime; [72,76,79,84].forEach((n,k)=>tone(N(n),t+k*.09,.18)); tone(N(88),t+.38,.45,'square',.05);}};
-  const play=k=>{init(); if(!ctx||!on) return; ctx.resume&&ctx.resume(); fx[k]&&fx[k]();};
+  const play=k=>{init(); if(!ctx||!on) return; if(ctx.state!=='running'&&ctx.resume) ctx.resume(); fx[k]&&fx[k]();};
   const set=v=>{on=v; try{localStorage.setItem('pv-sound',v?'on':'off')}catch(e){} if(master) master.gain.setTargetAtTime(v?1:0,ctx.currentTime,.03); if(v) startMusic(); paint();};
   const btn=document.createElement('button'); btn.className='snd'; btn.type='button';
   const paint=()=>{btn.innerHTML=on?'♪ SOUND ON':'♪ SOUND OFF'; btn.setAttribute('aria-pressed',String(on)); btn.setAttribute('aria-label',on?'Turn sound off':'Turn sound on');};
   btn.onclick=()=>{set(!on); if(on) play('click');}; paint(); document.body.appendChild(btn);
-  document.addEventListener('visibilitychange',()=>{if(!ctx) return; document.hidden?ctx.suspend():(on&&timer&&ctx.resume());});
+  document.addEventListener('visibilitychange',()=>{if(!ctx) return; document.hidden?ctx.suspend():(on&&ctx.resume());});
   return {play,startMusic,get on(){return on}};})();
 
 
@@ -585,36 +596,35 @@ async function makeCard({t,style,stops,c,mode,valueTxt,foodTxt}){
   return cv;
 }
 async function openCard(info){
-  const full=`${info.text}\nSee my one-day plan: ${info.link}`;
+  const full=`${info.text}\nSee my one-day plan: ${info.link}`, TITLE="What's Your Pohang Vibe?";
   const ov=document.createElement('div'); ov.className='overlay'; ov.innerHTML=`<div class="modal cardm" role="dialog" aria-modal="true" aria-label="Share your vibe"><div class="m-top"><h2>SHARE YOUR VIBE</h2><button class="x" aria-label="Close"></button></div>
-    <div class="cardwrap"><p class="fine">Making your card…</p></div><div class="acts"></div><p class="fine" id="cardm" aria-live="polite">Your friend will see this exact plan when they open the link.</p></div>`;
+    <div class="cardwrap"><p class="fine">Making your card…</p></div><div class="acts"></div><div class="acts2"></div><p class="fine" id="cardm" aria-live="polite">Your friend will see this exact plan when they open the link.</p></div>`;
   document.body.appendChild(ov); const close=()=>{SND.play('back');ov.remove();}; ov.querySelector('.x').onclick=close; ov.onclick=e=>{if(e.target===ov) close();};
-  const acts=ov.querySelector('.acts'), cardm=ov.querySelector('#cardm'), msg=t=>{cardm.textContent=t;};
+  const acts=ov.querySelector('.acts'), acts2=ov.querySelector('.acts2'), cardm=ov.querySelector('#cardm'), msg=t=>{cardm.textContent=t;};
   const showLink=()=>{cardm.innerHTML='Copy this link and send it to your friend:<input class="linkbox" readonly value="'+esc(info.link)+'">'; const i=cardm.querySelector('input'); i.onclick=()=>i.select(); i.select();};
   const copyLink=async()=>{ try{ if(!navigator.clipboard) throw 0; await navigator.clipboard.writeText(full); msg('Link copied! Paste it into a chat with your friend.'); }catch(e){ showLink(); } };
-  const btn=(label,cls)=>{const b=document.createElement('button'); b.className=cls; b.textContent=label; acts.appendChild(b); return b;};
-  const sl=btn('SHARE LINK','big');
-  sl.onclick=async()=>{SND.play('click');
-    if(navigator.share){ try{ await navigator.share({title:"What's Your Pohang Vibe?",text:info.text,url:info.link}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
+  const btn=(where,label,cls)=>{const b=document.createElement('button'); b.className=cls; b.textContent=label; where.appendChild(b); return b;};
+  let file=null, blob=null, src=null, fname=`pohang-vibe-${info.t.id}.png`;
+  const isAbort=e=>e&&e.name==='AbortError';
+  const share=btn(acts,'SHARE','big');
+  share.onclick=async()=>{SND.play('click');
+    let canFiles=false; try{ canFiles=!!(file&&navigator.canShare&&navigator.canShare({files:[file]})); }catch(e){}
+    if(canFiles){ try{ await navigator.share({files:[file],title:TITLE,text:full}); return; }catch(e){ if(isAbort(e)) return; } }
+    if(navigator.share){ try{ await navigator.share({title:TITLE,text:info.text,url:info.link}); return; }catch(e){ if(isAbort(e)) return; } }
     copyLink(); };
-  let cv=null, blob=null;
-  try{ cv=await makeCard(info); blob=await new Promise(r=>cv.toBlob(r,'image/png')); }catch(e){ blob=null; }
-  if(!blob){ ov.querySelector('.cardwrap').innerHTML='<p class="fine">The image card could not be made in this browser, but you can still share the link.</p>'; btn('COPY LINK','ghost').onclick=()=>{SND.play('click'); copyLink();}; return; }
-  const src=URL.createObjectURL(blob), fname=`pohang-vibe-${info.t.id}.png`;
+  const sv=btn(acts2,'SAVE IMAGE','ghost'); sv.disabled=true;
+  btn(acts2,'COPY LINK','ghost').onclick=()=>{SND.play('click'); copyLink();};
+  try{ const cv=await makeCard(info); blob=await new Promise(r=>cv.toBlob(r,'image/png')); }catch(e){ blob=null; }
+  if(!blob){ ov.querySelector('.cardwrap').innerHTML='<p class="fine">The image card could not be made in this browser, but you can still share the link.</p>'; sv.remove(); return; }
+  src=URL.createObjectURL(blob); file=new File([blob],fname,{type:'image/png'});
   ov.querySelector('.cardwrap').innerHTML=`<img src="${src}" alt="Share card: ${esc(info.t.name)}, ${esc(info.style)}">`;
-  const file=new File([blob],fname,{type:'image/png'});
-  let canFiles=false; try{ canFiles=!!(navigator.canShare&&navigator.canShare({files:[file]})); }catch(e){}
-  if(canFiles){ const b=btn('SHARE IMAGE','big');
-    b.onclick=async()=>{SND.play('click'); try{ await navigator.share({files:[file],title:"What's Your Pohang Vibe?",text:full}); }
-      catch(e){ if(e&&e.name==='AbortError') return; try{ await navigator.share({files:[file]}); }catch(e2){ if(e2&&e2.name==='AbortError') return; msg('Image sharing is not available here. Use SHARE LINK, or press and hold the image to save it.'); } } }; }
-  const sv=btn('SAVE IMAGE','big');
+  sv.disabled=false;
   sv.onclick=async()=>{SND.play('click'); let dl=null; try{dl=await (window.claude&&claude.use?claude.use('downloads'):null);}catch(e){}
     if(dl){ try{await dl.save({filename:fname,data:blob}); msg('Saved!');}catch(e){ if(e&&e.code==='declined') return; msg('Could not save here. Press and hold the image to save it.'); } return; }
-    const inApp=/KAKAOTALK|Instagram|FBAN|FBAV|Line\/|NAVER|wv\)/i.test(navigator.userAgent);
-    if(inApp){ msg('In this app, press and hold the image above to save it.'); return; }
+    if(/KAKAOTALK|Instagram|FBAN|FBAV|Line\/|NAVER|wv\)/i.test(navigator.userAgent)){ msg('In this app, press and hold the image above to save it.'); return; }
     const a=document.createElement('a'); a.href=src; a.download=fname; document.body.appendChild(a); a.click(); a.remove(); msg('Saved! Check your downloads. If nothing was saved, press and hold the image.'); };
-  btn('COPY LINK','ghost').onclick=()=>{SND.play('click'); copyLink();};
 }
+
 
 
 function openPlace(id){
