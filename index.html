@@ -256,9 +256,10 @@ details.basics ul{margin:8px 0 2px;padding-left:18px}
 }
 .game:has(> .screen){margin-block:auto}
 .cardm .linkbox{display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:8px;font:inherit;font-size:13px;border:2px solid var(--ink);background:#fff}
-.cardm .acts .big{min-width:min(320px,80%);justify-content:center}
-.cardm .acts2{display:flex;gap:18px;justify-content:center;margin-top:10px}
-.cardm .acts2 button:disabled{opacity:.4}
+.cardm .acts{padding:0 14px;flex-wrap:nowrap;gap:12px}
+.cardm .acts .big{flex:1 1 0;justify-content:center;min-width:0}
+.cardm .acts .big.alt{background:#fbe9c6;color:var(--ink)}
+.cardm .acts button:disabled{opacity:.45}
 /* phone layout fix (2026-11-19) */
 @media (max-width:520px){
   body{padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
@@ -598,9 +599,9 @@ async function makeCard({t,style,stops,c,mode,valueTxt,foodTxt}){
 async function openCard(info){
   const full=`${info.text}\nSee my one-day plan: ${info.link}`, TITLE="What's Your Pohang Vibe?";
   const ov=document.createElement('div'); ov.className='overlay'; ov.innerHTML=`<div class="modal cardm" role="dialog" aria-modal="true" aria-label="Share your vibe"><div class="m-top"><h2>SHARE YOUR VIBE</h2><button class="x" aria-label="Close"></button></div>
-    <div class="cardwrap"><p class="fine">Making your card…</p></div><div class="acts"></div><div class="acts2"></div><p class="fine" id="cardm" aria-live="polite">Your friend will see this exact plan when they open the link.</p></div>`;
+    <div class="cardwrap"><p class="fine">Making your card…</p></div><div class="acts"></div><p class="fine" id="cardm" aria-live="polite">Your friend will see this exact plan when they open the link.</p></div>`;
   document.body.appendChild(ov); const close=()=>{SND.play('back');ov.remove();}; ov.querySelector('.x').onclick=close; ov.onclick=e=>{if(e.target===ov) close();};
-  const acts=ov.querySelector('.acts'), acts2=ov.querySelector('.acts2'), cardm=ov.querySelector('#cardm'), msg=t=>{cardm.textContent=t;};
+  const acts=ov.querySelector('.acts'), cardm=ov.querySelector('#cardm'), msg=t=>{cardm.textContent=t;};
   const showLink=()=>{cardm.innerHTML='Copy this link and send it to your friend:<input class="linkbox" readonly value="'+esc(info.link)+'">'; const i=cardm.querySelector('input'); i.onclick=()=>i.select(); i.select();};
   const copyLink=async()=>{ try{ if(!navigator.clipboard) throw 0; await navigator.clipboard.writeText(full); msg('Link copied! Paste it into a chat with your friend.'); }catch(e){ showLink(); } };
   const btn=(where,label,cls)=>{const b=document.createElement('button'); b.className=cls; b.textContent=label; where.appendChild(b); return b;};
@@ -612,8 +613,7 @@ async function openCard(info){
     if(canFiles){ try{ await navigator.share({files:[file],title:TITLE,text:full}); return; }catch(e){ if(isAbort(e)) return; } }
     if(navigator.share){ try{ await navigator.share({title:TITLE,text:info.text,url:info.link}); return; }catch(e){ if(isAbort(e)) return; } }
     copyLink(); };
-  const sv=btn(acts2,'SAVE IMAGE','ghost'); sv.disabled=true;
-  btn(acts2,'COPY LINK','ghost').onclick=()=>{SND.play('click'); copyLink();};
+  const sv=btn(acts,'SAVE IMAGE','big alt'); sv.disabled=true;
   try{ const cv=await makeCard(info); blob=await new Promise(r=>cv.toBlob(r,'image/png')); }catch(e){ blob=null; }
   if(!blob){ ov.querySelector('.cardwrap').innerHTML='<p class="fine">The image card could not be made in this browser, but you can still share the link.</p>'; sv.remove(); return; }
   src=URL.createObjectURL(blob); file=new File([blob],fname,{type:'image/png'});
