@@ -255,6 +255,7 @@ details.basics ul{margin:8px 0 2px;padding-left:18px}
   @keyframes pop{from{transform:translateY(6px);opacity:.4}}
 }
 .game:has(> .screen){margin-block:auto}
+.cardm .linkbox{display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:8px;font:inherit;font-size:13px;border:2px solid var(--ink);background:#fff}
 /* phone layout fix (2026-11-19) */
 @media (max-width:520px){
   body{padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
@@ -527,8 +528,9 @@ function renderResult(key,mode){ mode=MODE[mode]?mode:'unsure';
   if(!fbDone()&&!fbSeen()) window.__fbTimer=setTimeout(()=>{ if(app.contains($('fbbox'))&&!fbDone()&&!document.querySelector('.overlay')) openFeedbackPopup(fbCtx); },7000);
   const say=m=>{$('toast').textContent=m};
   $('sv').onclick=()=>{SND.play('click');try{localStorage.setItem('pohang-vibe-route',JSON.stringify({key,mode,at:Date.now()}));say('Saved on this browser. Open this page again to see your route.')}catch(e){say('Saving is blocked in this browser. Use Share to keep your link.')}};
-  $('sh').onclick=()=>{SND.play('click'); const text=`My Pohang vibe is ${t.name} ${t.emoji} · ${style}\n${stops.filter(x=>x.s.place).map(x=>x.p.name).join(' → ')}${SITE_URL?'\nFind yours: '+SITE_URL:''}`;
-    openCard({t,style,stops,c,mode,text,valueTxt:Q.valueText[pick[2]],foodTxt:Q.foodText[pick[3]]});};
+  $('sh').onclick=()=>{SND.play('click'); const link=(SITE_URL||location.origin+location.pathname)+'#'+key+'-'+mode;
+    const text=`My Pohang vibe is ${t.name} ${t.emoji} · ${style}\n${stops.filter(x=>x.s.place).map(x=>x.p.name).join(' → ')}`;
+    openCard({t,style,stops,c,mode,text,link,valueTxt:Q.valueText[pick[2]],foodTxt:Q.foodText[pick[3]]});};
   $('ag').onclick=()=>{SND.play('click');try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}answers={};renderStart();};
   window.scrollTo({top:0});
 }
@@ -583,22 +585,37 @@ async function makeCard({t,style,stops,c,mode,valueTxt,foodTxt}){
   return cv;
 }
 async function openCard(info){
-  const ov=document.createElement('div'); ov.className='overlay'; ov.innerHTML=`<div class="modal cardm" role="dialog" aria-modal="true" aria-label="Share image"><div class="m-top"><h2>SHARE YOUR VIBE</h2><button class="x" aria-label="Close"></button></div>
-    <div class="cardwrap"><p class="fine">Making your card…</p></div><div class="acts"></div><p class="fine" id="cardm">On a phone, you can also press and hold the image to save it.</p></div>`;
+  const full=`${info.text}\nSee my one-day plan: ${info.link}`;
+  const ov=document.createElement('div'); ov.className='overlay'; ov.innerHTML=`<div class="modal cardm" role="dialog" aria-modal="true" aria-label="Share your vibe"><div class="m-top"><h2>SHARE YOUR VIBE</h2><button class="x" aria-label="Close"></button></div>
+    <div class="cardwrap"><p class="fine">Making your card…</p></div><div class="acts"></div><p class="fine" id="cardm" aria-live="polite">Your friend will see this exact plan when they open the link.</p></div>`;
   document.body.appendChild(ov); const close=()=>{SND.play('back');ov.remove();}; ov.querySelector('.x').onclick=close; ov.onclick=e=>{if(e.target===ov) close();};
-  const cv=await makeCard(info), blob=await new Promise(r=>cv.toBlob(r,'image/png')), src=URL.createObjectURL(blob), fname=`pohang-vibe-${info.t.id}.png`;
+  const acts=ov.querySelector('.acts'), cardm=ov.querySelector('#cardm'), msg=t=>{cardm.textContent=t;};
+  const showLink=()=>{cardm.innerHTML='Copy this link and send it to your friend:<input class="linkbox" readonly value="'+esc(info.link)+'">'; const i=cardm.querySelector('input'); i.onclick=()=>i.select(); i.select();};
+  const copyLink=async()=>{ try{ if(!navigator.clipboard) throw 0; await navigator.clipboard.writeText(full); msg('Link copied! Paste it into a chat with your friend.'); }catch(e){ showLink(); } };
+  const btn=(label,cls)=>{const b=document.createElement('button'); b.className=cls; b.textContent=label; acts.appendChild(b); return b;};
+  const sl=btn('SHARE LINK','big');
+  sl.onclick=async()=>{SND.play('click');
+    if(navigator.share){ try{ await navigator.share({title:"What's Your Pohang Vibe?",text:info.text,url:info.link}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
+    copyLink(); };
+  let cv=null, blob=null;
+  try{ cv=await makeCard(info); blob=await new Promise(r=>cv.toBlob(r,'image/png')); }catch(e){ blob=null; }
+  if(!blob){ ov.querySelector('.cardwrap').innerHTML='<p class="fine">The image card could not be made in this browser, but you can still share the link.</p>'; btn('COPY LINK','ghost').onclick=()=>{SND.play('click'); copyLink();}; return; }
+  const src=URL.createObjectURL(blob), fname=`pohang-vibe-${info.t.id}.png`;
   ov.querySelector('.cardwrap').innerHTML=`<img src="${src}" alt="Share card: ${esc(info.t.name)}, ${esc(info.style)}">`;
-  const acts=ov.querySelector('.acts'), msg=t=>{ov.querySelector('#cardm').textContent=t;};
   const file=new File([blob],fname,{type:'image/png'});
-  if(navigator.canShare&&navigator.canShare({files:[file]})){ const b=document.createElement('button'); b.className='big'; b.textContent='SHARE IMAGE'; acts.appendChild(b);
-    b.onclick=async()=>{SND.play('click'); try{await navigator.share({files:[file],title:"What's Your Pohang Vibe?",text:info.text});}catch(e){}}; }
-  const sv=document.createElement('button'); sv.className='big'; sv.textContent='SAVE IMAGE'; acts.appendChild(sv);
+  let canFiles=false; try{ canFiles=!!(navigator.canShare&&navigator.canShare({files:[file]})); }catch(e){}
+  if(canFiles){ const b=btn('SHARE IMAGE','big');
+    b.onclick=async()=>{SND.play('click'); try{ await navigator.share({files:[file],title:"What's Your Pohang Vibe?",text:full}); }
+      catch(e){ if(e&&e.name==='AbortError') return; try{ await navigator.share({files:[file]}); }catch(e2){ if(e2&&e2.name==='AbortError') return; msg('Image sharing is not available here. Use SHARE LINK, or press and hold the image to save it.'); } } }; }
+  const sv=btn('SAVE IMAGE','big');
   sv.onclick=async()=>{SND.play('click'); let dl=null; try{dl=await (window.claude&&claude.use?claude.use('downloads'):null);}catch(e){}
     if(dl){ try{await dl.save({filename:fname,data:blob}); msg('Saved!');}catch(e){ if(e&&e.code==='declined') return; msg('Could not save here. Press and hold the image to save it.'); } return; }
-    const a=document.createElement('a'); a.href=src; a.download=fname; document.body.appendChild(a); a.click(); a.remove(); msg('Saved! Check your downloads.'); };
-  const cp=document.createElement('button'); cp.className='ghost'; cp.textContent='COPY TEXT'; acts.appendChild(cp);
-  cp.onclick=()=>{SND.play('click'); (navigator.clipboard?navigator.clipboard.writeText(info.text):Promise.reject()).then(()=>msg('Text copied!'),()=>msg(info.text));};
+    const inApp=/KAKAOTALK|Instagram|FBAN|FBAV|Line\/|NAVER|wv\)/i.test(navigator.userAgent);
+    if(inApp){ msg('In this app, press and hold the image above to save it.'); return; }
+    const a=document.createElement('a'); a.href=src; a.download=fname; document.body.appendChild(a); a.click(); a.remove(); msg('Saved! Check your downloads. If nothing was saved, press and hold the image.'); };
+  btn('COPY LINK','ghost').onclick=()=>{SND.play('click'); copyLink();};
 }
+
 
 function openPlace(id){
   const p=placeById[id]; if(!p) return; SND.play('open');
