@@ -649,7 +649,7 @@ function openPlace(id){
   const ov=document.createElement('div'); ov.className='overlay';
   ov.innerHTML=`<div class="modal" role="dialog" aria-modal="true" aria-labelledby="mt">
     <div class="m-top"><span class="mi" style="background-image:${url(g[0]||(p.kind==='cafe'?'ic_coffee':p.kind?'ic_bowl':'ic_wave'))}"></span><h2 id="mt">${esc(p.name)}<small>${esc(p.nameKo)}${p.pick==='local'?' · LOCAL PICK':''}</small></h2><button class="x" aria-label="Close"></button></div>
-    <div class="gal${g.length>1?'':' solo'}"><div class="main" id="gm" style="background-image:${url(g[0]||(p.kind==='cafe'?'ic_coffee':p.kind?'ic_bowl':''))};${p.kind?'background-size:contain;background-color:#fbf5e6;background-repeat:no-repeat;image-rendering:pixelated':''}">${g.length||p.kind?'':(GLYPH[id]||'📍')}</div>
+    <div class="gal${g.length>1?'':' solo'}"><div class="main" id="gm" style="background-image:${url(g[0]||(p.kind==='cafe'?'ic_coffee':p.kind?'ic_bowl':''))};${p.kind?'background-size:contain;background-color:#f7edd8;background-repeat:no-repeat;image-rendering:pixelated':''}">${g.length||p.kind?'':(GLYPH[id]||'📍')}</div>
       <div class="side">${g.length>1?g.slice(0,4).map((k,i)=>`<div role="button" tabindex="0" aria-label="${i<art.length?'Show pixel art':'Show real photo'}" data-k="${k}" data-i="${i}" class="${i<art.length?'art':'ph'}${i===0?' on':''}" style="background-image:${url(k)}"></div>`).join(''):''}</div></div>
     ${ph.length&&art.length?`<p class="gal-cap" id="gcap">${cap(0)}</p>`:''}${p.kind&&art.length?'<p class="gal-cap">Pixel illustration of the signature menu, not a photo of this restaurant</p>':''}
     <p class="m-desc">${esc(p.why)}</p>
