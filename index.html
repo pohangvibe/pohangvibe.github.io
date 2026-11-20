@@ -286,10 +286,12 @@ details.basics ul{margin:8px 0 2px;padding-left:18px}
 .art{position:absolute;inset:0}
 /* phone title screen (2026-11-20): fill the screen, taller crop of the scene */
 @media (max-width:520px){
-  body:has(.screen.start){padding-block:max(10px,env(safe-area-inset-top,0px)) max(10px,env(safe-area-inset-bottom,0px))}
-  .game:has(> .screen.start){margin-block:auto}
-  .screen.start{min-height:calc(100svh - 20px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
-  .screen.start .scene{aspect-ratio:auto;flex:0 0 auto;height:clamp(75vw,calc(100svh - 300px),118vw)}
+  /* full-bleed: no desk margin around the game screens on phones */
+  html body:has(.game > .screen){padding:0}
+  html .game:has(> .screen){margin:0;max-width:none}
+  html .game > .screen{border:0;box-shadow:none;min-height:100svh}
+  html .game > .screen.grow{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+  .screen.start .scene{aspect-ratio:auto;flex:0 0 auto;height:clamp(75vw,calc(100svh - 290px),118vw)}
   .screen.start .art{inset:0 auto 0 50%;height:100%;width:auto;aspect-ratio:4/3;transform:translateX(-50%);container-type:inline-size}
   .screen.start .traveler{left:5%;bottom:4.8%;height:40%}
   .screen.start .st-kicker{font-size:min(15px,3.8vw);white-space:nowrap}
@@ -297,7 +299,7 @@ details.basics ul{margin:8px 0 2px;padding-left:18px}
   .screen.start .sign-b{gap:0}
   .screen.start .sign-b strong{font-size:7cqw}
   .screen.start .sign-a span{font-size:2.8cqw}
-  .screen.start .st-panel{flex:1 1 auto;justify-content:center;gap:16px;padding:20px 18px 22px}
+  .screen.start .st-panel{flex:1 1 auto;justify-content:center;gap:16px;padding:20px 18px calc(22px + env(safe-area-inset-bottom,0px))}
 }
 /* phone layout fix (2026-11-19) */
 @media (max-width:520px){
