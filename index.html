@@ -291,7 +291,7 @@ details.basics ul{margin:8px 0 2px;padding-left:18px}
   html .game:has(> .screen){margin:0;max-width:none}
   html .game > .screen{border:0;box-shadow:none;min-height:100svh}
   html .game > .screen.grow{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-  .screen.start .scene{aspect-ratio:auto;flex:0 0 auto;height:clamp(75vw,calc(100svh - 290px),118vw)}
+  .screen.start .scene{aspect-ratio:auto;flex:0 0 auto;height:clamp(75vw,calc(100svh - 230px),134vw)}
   .screen.start .art{inset:0 auto 0 50%;height:100%;width:auto;aspect-ratio:4/3;transform:translateX(-50%);container-type:inline-size}
   .screen.start .traveler{left:5%;bottom:4.8%;height:40%}
   .screen.start .st-kicker{font-size:min(15px,3.8vw);white-space:nowrap}
@@ -299,7 +299,11 @@ details.basics ul{margin:8px 0 2px;padding-left:18px}
   .screen.start .sign-b{gap:0}
   .screen.start .sign-b strong{font-size:7cqw}
   .screen.start .sign-a span{font-size:2.8cqw}
-  .screen.start .st-panel{flex:1 1 auto;justify-content:center;gap:16px;padding:20px 18px calc(22px + env(safe-area-inset-bottom,0px))}
+  .screen.start .st-panel{flex:1 1 auto;justify-content:center;gap:12px;padding:56px 18px calc(18px + env(safe-area-inset-bottom,0px));margin-top:-56px;position:relative;z-index:1;border-top:0;background:linear-gradient(to bottom,rgba(29,39,71,0) 0,var(--navy) 60px)}
+  .screen.start .st-sub button,.screen.start .st-sub span{padding:4px 6px}
+  /* quiz: progress bar on top, question and choices centered in the remaining height */
+  .screen.grow .dialog{margin-top:auto}
+  .screen.grow .choices{margin-bottom:auto}
 }
 /* phone layout fix (2026-11-19) */
 @media (max-width:520px){
