@@ -308,6 +308,9 @@ const J=id=>JSON.parse(document.getElementById(id).textContent);
 const A=J('d-assets'),TYPES=J('d-types'),Q=J('d-questions'),PLACES=J('d-places').places,CD=J('d-courses'),FOOD=CD.food||{};
 const placeById=Object.assign(Object.fromEntries(PLACES.map(p=>[p.id,p])),FOOD), typeById=Object.fromEntries(TYPES.map(t=>[t.id,t]));
 const app=document.getElementById('app'); const $=id=>document.getElementById(id);
+// 애널리틱스 이벤트 기록 (Google 태그가 없거나 막혀 있으면 아무 일도 하지 않음)
+const track=(name,params)=>{ try{ if(typeof window.gtag==='function') window.gtag('event',name,params||{}); }catch(e){} };
+let fromQuiz=false;
 const url=k=>A[k]?`url('${A[k]}')`:(/^https:\/\//.test(k)?`url('${k}')`:'none');
 const SCENE={start:'bg_start',station:'bg_start',ocean:'bg_ocean',market:'bg_market',coast:'bg_coast'};
 const GAL={yeongildae:['yeongildae_hd']};
@@ -350,7 +353,7 @@ function mountFeedback(root,ctx,hid,onDone){
   root.querySelectorAll('.stars button').forEach(b=>b.onclick=()=>{rating=+b.dataset.n; SND.play('pick');
     root.querySelectorAll('.stars button').forEach(x=>{x.classList.toggle('on',+x.dataset.n<=rating); x.setAttribute('aria-checked',String(+x.dataset.n===rating));}); go.disabled=false;});
   go.onclick=async()=>{ if(!rating) return; go.disabled=true; go.textContent='SENDING…';
-    const ok=await sendFeedback({rating,comment:q('.fbt').value.trim()},ctx);
+    const ok=await sendFeedback({rating,comment:q('.fbt').value.trim()},ctx); if(ok) track('feedback_submit',{rating});
     if(!ok){ go.disabled=false; go.textContent='SEND'; q('.fb-msg').textContent='Could not send. Please try again.'; return; }
     SND.play('result'); ss('pv-fb-done','1'); root.innerHTML=`<p class="fb-thanks">★ Thanks! Your feedback helps make Pohang easier to explore.</p>`;
     const box=document.getElementById('fbbox'); if(box&&box!==root) mountFeedback(box,ctx,'fbh');
@@ -454,7 +457,7 @@ function renderStart(){
       <p>Every plan starts and ends at Pohang Station. Travel times come from real bus and driving route data, and every restaurant has 30+ reviews and a 3.5+ rating on Kakao Map. Checked November 2026.</p>
       <button class="ghost" id="abx">CLOSE</button></div>
   </section>`;
-  $('go').onclick=()=>{answers={};SND.play('click');SND.startMusic();renderQ(0)};
+  $('go').onclick=()=>{answers={};SND.play('click');SND.startMusic();track('quiz_start');renderQ(0)};
   const tog=()=>{SND.play('click');$('about').hidden=!$('about').hidden;$('ab').setAttribute('aria-expanded',String(!$('about').hidden))};
   $('ab').onclick=tog; $('abx').onclick=tog;
   fitAll();
@@ -481,6 +484,7 @@ function renderQ(i){
   $('bk').onclick=()=>{SND.play('back');i?renderQ(i-1):renderStart();};
   let busy=false;
   app.querySelectorAll('.choice').forEach(b=>b.onclick=()=>{ if(busy) return; busy=true; answers[q.id]=b.dataset.o;
+    track('quiz_answer',{question_number:i+1,question_id:q.id,answer:b.dataset.o});
     SND.play('pick'); b.classList.add('picked'); $('av').style.backgroundImage=url('c_guide_excited');
     setTimeout(()=>{ i+1<n?renderQ(i+1):finish(); }, matchMedia('(prefers-reduced-motion: reduce)').matches?0:320); });
   app.querySelector('.choice').focus({preventScroll:true});
@@ -492,6 +496,7 @@ function finish(){
   const mode=answers['q-move']||'unsure';
   try{history.replaceState(null,'',`#${key}-${mode}`)}catch(e){}
   SND.play('result');
+  fromQuiz=true;
   renderResult(key,mode);
 }
 
@@ -503,6 +508,8 @@ function renderResult(key,mode){ mode=MODE[mode]?mode:'unsure';
   if(!/^[0-3]{4}$/.test(key)) return renderStart();
   const pick=TQ.map((q,i)=>q.options[+key[i]].id), t=typeById[Q.typeByInterest[pick[0]]]; if(!t) return renderStart();
   const typeId=t.id, style=Q.styleName[pick[1]];
+  { const ev={vibe_type:t.name,travel_style:style,transport:mode,plan:`${key}-${mode}`,source:fromQuiz?'quiz':'link'};
+    if(fromQuiz) track('quiz_complete',ev); track('result_view',ev); fromQuiz=false; }
   const c=CD.plans[CD.key[`${key}-${mode==='unsure'?'public':mode}`]]; if(!c) return renderStart();
   const stops=c.stops.map(s=>({s,p:placeById[s.place||s.food]})).filter(x=>x.p);
   const inRoute=new Set(stops.map(x=>x.p.id)), RURAL=['igari','naeyeonsan','gongjin-market','yeonorang'], qi=+key[0],
@@ -553,10 +560,10 @@ function renderResult(key,mode){ mode=MODE[mode]?mode:'unsure';
   if(!fbDone()&&!fbSeen()) window.__fbTimer=setTimeout(()=>{ if(app.contains($('fbbox'))&&!fbDone()&&!document.querySelector('.overlay')) openFeedbackPopup(fbCtx); },7000);
   const say=m=>{$('toast').textContent=m};
   $('sv').onclick=()=>{SND.play('click');try{localStorage.setItem('pohang-vibe-route',JSON.stringify({key,mode,at:Date.now()}));say('Saved on this browser. Open this page again to see your route.')}catch(e){say('Saving is blocked in this browser. Use Share to keep your link.')}};
-  $('sh').onclick=()=>{SND.play('click'); const link=(SITE_URL||location.origin+location.pathname)+'#'+key+'-'+mode;
+  $('sh').onclick=()=>{SND.play('click'); track('share_open',{vibe_type:t.name}); const link=(SITE_URL||location.origin+location.pathname)+'#'+key+'-'+mode;
     const text=`My Pohang vibe is ${t.name} ${t.emoji} · ${style}\n${stops.filter(x=>x.s.place).map(x=>x.p.name).join(' → ')}`;
     openCard({t,style,stops,c,mode,text,link,valueTxt:Q.valueText[pick[2]],foodTxt:Q.foodText[pick[3]]});};
-  $('ag').onclick=()=>{SND.play('click');try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}answers={};renderStart();};
+  $('ag').onclick=()=>{SND.play('click');track('play_again');try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}answers={};renderStart();};
   window.scrollTo({top:0});
 }
 
@@ -623,9 +630,9 @@ async function openCard(info){
   const share=btn(acts,'SHARE','big');
   share.onclick=async()=>{SND.play('click');
     let canFiles=false; try{ canFiles=!!(file&&navigator.canShare&&navigator.canShare({files:[file]})); }catch(e){}
-    if(canFiles){ try{ await navigator.share({files:[file],title:TITLE,text:full}); return; }catch(e){ if(isAbort(e)) return; } }
-    if(navigator.share){ try{ await navigator.share({title:TITLE,text:info.text,url:info.link}); return; }catch(e){ if(isAbort(e)) return; } }
-    copyLink(); };
+    if(canFiles){ try{ await navigator.share({files:[file],title:TITLE,text:full}); track('share',{method:'image',vibe_type:info.t.name}); return; }catch(e){ if(isAbort(e)) return; } }
+    if(navigator.share){ try{ await navigator.share({title:TITLE,text:info.text,url:info.link}); track('share',{method:'link',vibe_type:info.t.name}); return; }catch(e){ if(isAbort(e)) return; } }
+    copyLink(); track('share',{method:'copy_link',vibe_type:info.t.name}); };
   const sv=btn(acts,'SAVE IMAGE','big alt'); sv.disabled=true;
   let dataUrl=null;
   try{ const cv=await makeCard(info); blob=await new Promise(r=>cv.toBlob(r,'image/png')); try{ dataUrl=cv.toDataURL('image/png'); }catch(e){} }catch(e){ blob=null; }
@@ -637,7 +644,7 @@ async function openCard(info){
   const openSaver=()=>{ const v=document.createElement('div'); v.className='saver'; v.setAttribute('role','dialog'); v.setAttribute('aria-label','Save image');
     v.innerHTML=`<p class="saver-h">Press and hold the image,<br>then tap <b>“Save to Photos”</b></p><img src="${dataUrl||src}" alt="Your Pohang vibe card"><button class="big alt" type="button">DONE</button>`;
     document.body.appendChild(v); const done=()=>{SND.play('back'); v.remove();}; v.querySelector('button').onclick=done; v.onclick=e=>{if(e.target===v) done();}; };
-  sv.onclick=async()=>{SND.play('click'); let dl=null; if(window.claude&&claude.use){ try{dl=await claude.use('downloads');}catch(e){} }
+  sv.onclick=async()=>{SND.play('click'); track('save_image',{vibe_type:info.t.name}); let dl=null; if(window.claude&&claude.use){ try{dl=await claude.use('downloads');}catch(e){} }
     if(dl){ try{await dl.save({filename:fname,data:blob}); msg('Saved!');}catch(e){ if(e&&e.code==='declined') return; msg('Could not save here. Press and hold the image to save it.'); } return; }
     const ua=navigator.userAgent;
     const inApp=/KAKAOTALK|Instagram|FBAN|FBAV|Line\/|NAVER|wv\)/i.test(ua);
@@ -651,6 +658,7 @@ async function openCard(info){
 
 function openPlace(id){
   const p=placeById[id]; if(!p) return; SND.play('open');
+  track('place_open',{item_id:id,item_name:p.name,item_type:p.kind?'restaurant':'attraction'});
   const art=GAL[id]||[], ph=p.photos||[], g=[...art,...ph.map(x=>x.src)], q=encodeURIComponent(p.mapQuery||p.nameKo);
   const cap=i=>i<art.length?'Pixel art · tap <b>REAL PHOTO</b> to see the actual place':`📷 Photo: ${esc(ph[i-art.length].credit)} · ${esc(ph[i-art.length].license)}`;
   const row=(ic,label,val)=>`<div class="row">${IC[ic]}<div><b>${label}</b>${val}</div></div>`, opt=(ic,label,v)=>v?row(ic,label,esc(v)):'';
@@ -676,6 +684,8 @@ function openPlace(id){
   document.body.appendChild(ov); ov.querySelector('.x').focus();
 }
 
+document.addEventListener('click',e=>{ const a=e.target.closest&&e.target.closest('a[href]'); if(!a) return; const m=/kakao/i.test(a.href)?'kakao':/naver/i.test(a.href)?'naver':null;
+  if(m){ const t=document.querySelector('.modal h2'); track('map_click',{map:m,item_name:t?t.textContent.trim():''}); } },true);
 function boot(){const m=location.hash.slice(1).match(/^([0-3]{4})-(public|car|taxi|unsure)$/); if(m) renderResult(m[1],m[2]); else renderStart();}
 window.addEventListener('hashchange',boot); boot();
 })();
