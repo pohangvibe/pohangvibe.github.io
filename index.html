@@ -278,6 +278,11 @@ details.basics ul{margin:8px 0 2px;padding-left:18px}
 .game:has(> .screen){max-width:min(880px,calc((100svh / var(--z,1) - 96px) * 4 / 3))}
 .modal{zoom:var(--z,1);max-height:calc(100% / var(--z,1))}
 .cardwrap img{max-height:calc(62vh / var(--z,1))}
+@media (min-width:1100px) and (min-height:700px){
+  body{padding-block:16px 16px}
+  .game{max-width:860px}
+  .game:has(> .screen){max-width:min(calc(100vw / var(--z,1) - 40px),calc((100svh / var(--z,1) - 40px) * 4 / 3))}
+}
 /* phone layout fix (2026-11-19) */
 @media (max-width:520px){
   body{padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
@@ -299,7 +304,7 @@ details.basics ul{margin:8px 0 2px;padding-left:18px}
 }
 </style>
 
-<script>(function(){function fz(){var s=Math.min(innerWidth/1000,innerHeight/820);var z=s>1.08?Math.min(s,2.4):1;document.documentElement.style.setProperty('--z',String(Math.round(z*1000)/1000));}fz();addEventListener('resize',fz);})();</script>
+<script>(function(){function fz(){var s=Math.min(innerWidth/900,innerHeight/760);var z=s>1.05?Math.min(s,3):1;document.documentElement.style.setProperty('--z',String(Math.round(z*1000)/1000));}fz();addEventListener('resize',fz);})();</script>
 <main class="game" id="app" aria-live="polite"></main>
 
 
