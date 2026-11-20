@@ -273,6 +273,11 @@ details.basics ul{margin:8px 0 2px;padding-left:18px}
 .saver img{max-width:min(92vw,420px);max-height:72svh;object-fit:contain;border:3px solid #fbf5e6;-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto}
 .saver-h{margin:0;color:#fbf5e6;text-align:center;font-size:16px;line-height:1.45}
 .saver .big{font-size:13px;padding:9px 18px}
+/* big screens: scale the whole game up evenly (zoom set by script as --z) */
+.game{zoom:var(--z,1)}
+.game:has(> .screen){max-width:min(880px,calc((100svh / var(--z,1) - 96px) * 4 / 3))}
+.modal{zoom:var(--z,1);max-height:calc(100% / var(--z,1))}
+.cardwrap img{max-height:calc(62vh / var(--z,1))}
 /* phone layout fix (2026-11-19) */
 @media (max-width:520px){
   body{padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
@@ -294,6 +299,7 @@ details.basics ul{margin:8px 0 2px;padding-left:18px}
 }
 </style>
 
+<script>(function(){function fz(){var s=Math.min(innerWidth/1000,innerHeight/820);var z=s>1.08?Math.min(s,2.4):1;document.documentElement.style.setProperty('--z',String(Math.round(z*1000)/1000));}fz();addEventListener('resize',fz);})();</script>
 <main class="game" id="app" aria-live="polite"></main>
 
 
