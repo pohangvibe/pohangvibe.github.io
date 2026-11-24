@@ -284,6 +284,27 @@ details.basics ul{margin:8px 0 2px;padding-left:18px}
   .game:has(> .screen){max-width:min(calc(100vw / var(--z,1) - 40px),calc((100svh / var(--z,1) - 40px) * 4 / 3))}
 }
 .art{position:absolute;inset:0}
+.q-frame{position:relative;z-index:1;display:flex;flex-direction:column;flex:1;width:100%;container-type:inline-size}
+/* laptop/desktop full-bleed (2026-11-24): game screens fill the whole window, no desk margin */
+@media (min-width:521px){
+  html body:has(.game > .screen){padding:0}
+  html .game:has(> .screen){margin:0;max-width:none;width:100%}
+  html .game > .screen{border:0;box-shadow:none;width:100%;min-height:calc(100svh / var(--z,1))}
+  /* question screens: scene covers the window, quiz stays a readable 4:3 column in the middle */
+  html .game > .screen.grow{aspect-ratio:auto;background-size:cover;background-position:center}
+  .screen.grow .q-frame{width:100%;max-width:calc(100svh / var(--z,1) * 4 / 3);margin-inline:auto}
+  .screen.grow .dialog{margin-top:auto}
+  .screen.grow .choices{margin-bottom:auto}
+}
+/* title screen on landscape windows: the 4:3 scene is scaled to cover the window (crop top/bottom),
+   the traveler sticks to the visible floor and the panel sits centred under the sign */
+@media (min-width:521px) and (min-aspect-ratio:4/3) and (max-aspect-ratio:21/10){
+  html .game > .screen.start{height:calc(100svh / var(--z,1));min-height:0;container-type:size;
+    --crop:max(0px,75cqw - 100cqh);--top:min(var(--crop),9cqw)}
+  .screen.start .scene{position:absolute;left:0;width:100%;top:calc(-1 * var(--top))}
+  .screen.start .traveler{bottom:calc(4.8% + var(--crop) - var(--top))}
+  .screen.start .st-panel{top:calc(25.4cqw - var(--top));bottom:0;justify-content:center;padding-bottom:2cqh}
+}
 /* phone title screen (2026-11-20): fill the screen, taller crop of the scene */
 @media (max-width:520px){
   /* full-bleed: no desk margin around the game screens on phones */
@@ -507,13 +528,13 @@ function renderQ(i){
   const q=Q.questions[i], n=Q.questions.length;
   app.innerHTML=`<section class="screen grow" style="background-image:${url(SCENE[q.scene]||'bg_ocean')}" aria-label="Question ${i+1} of ${n}">
 
-    <div class="q-wrap">
+    <div class="q-frame"><div class="q-wrap">
       <div class="prog"><button id="bk" aria-label="Back">◀ BACK</button><span class="pips">${Q.questions.map((_,k)=>`<i class="${k<=i?'on':''}"></i>`).join('')}</span><span>${i+1}/${n}</span></div>
       <div class="dialog"><span class="avatar" id="av" style="background-image:${url(i===0?'c_guide_smiling':'c_guide_curious')}" aria-hidden="true"></span><p>${esc(q.text)}</p></div>
       <div class="choices">${q.options.map(o=>`<button class="choice" data-o="${o.id}">
         <span class="ic" style="${o.emoji?'display:grid;place-items:center;font-size:clamp(20px,5.5cqw,30px);background:#e8f0fa':'background-image:'+url(o.icon)}" aria-hidden="true">${o.emoji||''}</span>
         <span><b>${esc(o.title)}</b><small>${esc(o.sub)}</small></span>${CURSOR}</button>`).join('')}</div>
-    </div></section>`;
+    </div></div></section>`;
   $('bk').onclick=()=>{SND.play('back');i?renderQ(i-1):renderStart();};
   let busy=false;
   app.querySelectorAll('.choice').forEach(b=>b.onclick=()=>{ if(busy) return; busy=true; answers[q.id]=b.dataset.o;
