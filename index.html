@@ -302,8 +302,14 @@ details.basics ul{margin:8px 0 2px;padding-left:18px}
   html .game > .screen.start{height:calc(100svh / var(--z,1));min-height:0;container-type:size;
     --crop:max(0px,75cqw - 100cqh);--top:min(var(--crop),9cqw)}
   .screen.start .scene{position:absolute;left:0;width:100%;top:calc(-1 * var(--top))}
-  .screen.start .traveler{bottom:calc(4.8% + var(--crop) - var(--top))}
-  .screen.start .st-panel{top:calc(25.4cqw - var(--top));bottom:0;justify-content:center;padding-bottom:2cqh}
+  .screen.start .traveler{bottom:calc(4.8% + var(--crop) - var(--top));left:10%;height:35%}
+  /* keep the panel where the original 4:3 layout had it, and scale its text with the scene
+     (same ratio as the 860px window: 15/17/14px) so nothing looks tiny next to the big art */
+  .screen.start .st-panel{top:min(calc(36cqw - var(--top)),calc(100cqh - 23cqw));gap:1.6cqw}
+  .screen.start .st-text{font-size:1.5cqw;padding:1.2cqw 2cqw;border-width:.3cqw;outline-width:.3cqw}
+  .screen.start .st-go{font-size:1.7cqw;padding:1cqw 2.8cqw;border-width:.3cqw;box-shadow:.3cqw .3cqw 0 var(--ink)}
+  .screen.start .st-sub{gap:.2cqw}
+  .screen.start .st-sub button,.screen.start .st-sub span{font-size:1.3cqw;padding:.5cqw .6cqw}
 }
 /* phone title screen (2026-11-20): fill the screen, taller crop of the scene */
 @media (max-width:520px){
