@@ -387,7 +387,7 @@ const CURSOR='<svg class="cur" viewBox="0 0 10 10" aria-hidden="true"><path d="M
 let answers={};
 // 구글 폼 연결 정보 (폼의 '미리 채워진 링크'에서 얻는다). action이 비어 있으면 아직 전송하지 않는다.
 const FB_FORM={action:'https://docs.google.com/forms/d/e/1FAIpQLSfzj1UgN5nFzP9Hk-fpZv-BHgQ2mH8w69bXOLNlV7AZrdrd5Q/formResponse',
-  fields:{rating:'entry.1099538465',comment:'entry.1033617471',plan:'entry.1252017637',mode:'entry.813293408',screen:'entry.1216988883'}};
+  fields:{rating:'entry.1099538465',comment:'entry.1033617471',plan:'entry.1252017637',mode:'entry.813293408',screen:'entry.1216988883',country:'entry.1933156063'}};
 const ss=(k,v)=>{try{if(v===undefined) return sessionStorage.getItem(k); sessionStorage.setItem(k,v);}catch(e){return null}};
 const fbDone=()=>ss('pv-fb-done')==='1', fbSeen=()=>ss('pv-fb-seen')==='1';
 async function sendFeedback(ans,ctx){
