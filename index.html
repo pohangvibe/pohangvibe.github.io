@@ -741,7 +741,7 @@ function openPlace(id){
     </div><div class="mapbox"><div class="map" style="background-image:${url('map')}" aria-hidden="true"></div>
       <div style="display:grid;gap:6px"><a class="mapbtn" href="${p.kakaoUrl||('https://map.kakao.com/?q='+q)}" target="_blank" rel="noopener">Kakao Map ↗</a>
       <a class="mapbtn alt" href="https://map.naver.com/p/search/${q}" target="_blank" rel="noopener">Naver Map ↗</a>
-      <a class="mapbtn alt" href="https://www.google.com/maps/search/?api=1&query=${p.lat&&p.lng?`${p.lat},${p.lng}`:encodeURIComponent((p.mapQuery||p.nameKo)+' 포항')}" target="_blank" rel="noopener">Google Maps ↗</a></div></div></div>
+      <a class="mapbtn alt" href="${p.lat&&p.lng?`https://www.google.com/maps/search/${encodeURIComponent(p.nameKo||p.mapQuery)}/@${p.lat},${p.lng},17z`:'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent((p.mapQuery||p.nameKo)+' 포항')}" target="_blank" rel="noopener">Google Maps ↗</a></div></div></div>
   </div>`;
   const close=()=>{SND.play('back');ov.remove();document.removeEventListener('keydown',key)}, key=e=>{if(e.key==='Escape')close()};
   ov.onclick=e=>{if(e.target===ov)close()}; ov.querySelector('.x').onclick=close; document.addEventListener('keydown',key);
