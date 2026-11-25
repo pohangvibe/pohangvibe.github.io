@@ -740,7 +740,8 @@ function openPlace(id){
       ${p.koreanPhrase?row('chat','USEFUL KOREAN PHRASE',`<span class="ko">“${esc(p.koreanPhrase.ko)}”</span><span class="rm">${esc(p.koreanPhrase.romanized)} · ${esc(p.koreanPhrase.en)}</span>`):''}
     </div><div class="mapbox"><div class="map" style="background-image:${url('map')}" aria-hidden="true"></div>
       <div style="display:grid;gap:6px"><a class="mapbtn" href="${p.kakaoUrl||('https://map.kakao.com/?q='+q)}" target="_blank" rel="noopener">Kakao Map ↗</a>
-      <a class="mapbtn alt" href="https://map.naver.com/p/search/${q}" target="_blank" rel="noopener">Naver Map ↗</a></div></div></div>
+      <a class="mapbtn alt" href="https://map.naver.com/p/search/${q}" target="_blank" rel="noopener">Naver Map ↗</a>
+      <a class="mapbtn alt" href="https://www.google.com/maps/search/?api=1&query=${p.lat&&p.lng?`${p.lat},${p.lng}`:encodeURIComponent((p.mapQuery||p.nameKo)+' 포항')}" target="_blank" rel="noopener">Google Maps ↗</a></div></div></div>
   </div>`;
   const close=()=>{SND.play('back');ov.remove();document.removeEventListener('keydown',key)}, key=e=>{if(e.key==='Escape')close()};
   ov.onclick=e=>{if(e.target===ov)close()}; ov.querySelector('.x').onclick=close; document.addEventListener('keydown',key);
@@ -748,7 +749,7 @@ function openPlace(id){
   document.body.appendChild(ov); ov.querySelector('.x').focus();
 }
 
-document.addEventListener('click',e=>{ const a=e.target.closest&&e.target.closest('a[href]'); if(!a) return; const m=/kakao/i.test(a.href)?'kakao':/naver/i.test(a.href)?'naver':null;
+document.addEventListener('click',e=>{ const a=e.target.closest&&e.target.closest('a[href]'); if(!a) return; const m=/kakao/i.test(a.href)?'kakao':/naver/i.test(a.href)?'naver':/google\.[a-z.]+\/maps/i.test(a.href)?'google':null;
   if(m){ const t=document.querySelector('.modal h2'); track('map_click',{map:m,item_name:t?t.textContent.trim():''}); } },true);
 function boot(){const m=location.hash.slice(1).match(/^([0-3]{4})-(public|car|taxi|unsure)$/); if(m) renderResult(m[1],m[2]); else renderStart();}
 window.addEventListener('hashchange',boot); boot();
