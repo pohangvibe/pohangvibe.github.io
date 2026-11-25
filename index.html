@@ -388,7 +388,6 @@ let answers={};
 // 구글 폼 연결 정보 (폼의 '미리 채워진 링크'에서 얻는다). action이 비어 있으면 아직 전송하지 않는다.
 const FB_FORM={action:'https://docs.google.com/forms/d/e/1FAIpQLSfzj1UgN5nFzP9Hk-fpZv-BHgQ2mH8w69bXOLNlV7AZrdrd5Q/formResponse',
   fields:{rating:'entry.1099538465',comment:'entry.1033617471',plan:'entry.1252017637',mode:'entry.813293408',screen:'entry.1216988883'}};
-const COUNTRIES=['Korea','USA','China','Japan','Vietnam','Mongolia','Indonesia','Other'];
 const ss=(k,v)=>{try{if(v===undefined) return sessionStorage.getItem(k); sessionStorage.setItem(k,v);}catch(e){return null}};
 const fbDone=()=>ss('pv-fb-done')==='1', fbSeen=()=>ss('pv-fb-seen')==='1';
 async function sendFeedback(ans,ctx){
@@ -408,20 +407,14 @@ function mountFeedback(root,ctx,hid,onDone){
   root.innerHTML=`<h3 class="route-h" id="${hid}">▸ RATE THIS WEBSITE<small>Takes 10 seconds</small></h3>
     <p class="fb-q">How satisfied are you with this website?</p>
     <div class="stars" role="radiogroup" aria-label="Satisfaction from 1 to 5 stars">${[1,2,3,4,5].map(n=>`<button type="button" role="radio" aria-checked="false" aria-label="${n} star${n>1?'s':''}" data-n="${n}">★</button>`).join('')}</div>
-    <div class="fb-l" role="group" aria-labelledby="${hid}-c"><p class="fb-q" id="${hid}-c">Where are you from? <span>(optional)</span></p>
-      <div class="chips fb-cty">${COUNTRIES.map(c=>`<button type="button" aria-pressed="false" data-c="${c}">${c}</button>`).join('')}</div>
-      <input class="fb-oth" maxlength="60" placeholder="Type your country" hidden aria-label="Your country"></div>
+    <label class="fb-l">Where are you from? <span>(optional)</span><input class="fb-cty" maxlength="60" placeholder="e.g. Vietnam" autocomplete="country-name"></label>
     <label class="fb-l">Leave a one-line comment <span>(optional)</span><input class="fbt" maxlength="300" placeholder="Anything you liked or would change"></label>
     <button class="big fb-go" disabled>SEND</button><p class="fine fb-msg" aria-live="polite"></p>`;
-  const q=sel=>root.querySelector(sel), go=q('.fb-go'); let country='';
-  root.querySelectorAll('.fb-cty button').forEach(b=>b.onclick=()=>{ const on=b.getAttribute('aria-pressed')!=='true';
-    root.querySelectorAll('.fb-cty button').forEach(x=>x.setAttribute('aria-pressed','false'));
-    if(on) b.setAttribute('aria-pressed','true'); country=on?b.dataset.c:''; SND.play('pick');
-    const oth=q('.fb-oth'); oth.hidden=!(on&&country==='Other'); if(!oth.hidden) oth.focus(); });
+  const q=sel=>root.querySelector(sel), go=q('.fb-go');
   root.querySelectorAll('.stars button').forEach(b=>b.onclick=()=>{rating=+b.dataset.n; SND.play('pick');
     root.querySelectorAll('.stars button').forEach(x=>{x.classList.toggle('on',+x.dataset.n<=rating); x.setAttribute('aria-checked',String(+x.dataset.n===rating));}); go.disabled=false;});
   go.onclick=async()=>{ if(!rating) return; go.disabled=true; go.textContent='SENDING…';
-    const cty=country==='Other'?(q('.fb-oth').value.trim()||'Other'):country;
+    const cty=q('.fb-cty').value.trim();
     const ok=await sendFeedback({rating,comment:q('.fbt').value.trim(),country:cty},ctx);
     if(ok){ if(cty){ try{ window.gtag&&window.gtag('set','user_properties',{home_country:cty}); }catch(e){} }
       track('feedback_submit',cty?{rating,home_country:cty}:{rating}); }
